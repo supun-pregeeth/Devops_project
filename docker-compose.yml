@@ -1,0 +1,37 @@
+version: "3.9"  # Docker Compose file format version
+
+services:
+  # =========================
+  # Frontend Service (React)
+  # =========================
+  frontend:
+    build: ./frontend                # Path to the frontend Dockerfile
+    container_name: frontend         # Optional: name the container
+    ports:
+      - "3000:80"                   # Map host port 3000 to container port 80 (Nginx serves on 80)
+    depends_on:
+      - backend                     # Ensure backend starts before frontend
+    networks:
+      - app-network                 # Connect this service to the shared network
+    command: ["nginx", "-g", "daemon off;"]  # Override CMD to run Nginx in foreground
+
+  # =========================
+  # Backend Service (Spring Boot)
+  # =========================
+  backend:
+    build: ./backend                 # Path to the backend Dockerfile
+    container_name: backend          # Optional: name the container
+    ports:
+      - "5000:8080"                  # Map host port 8080 to container port 8080 (Spring Boot default)
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod  # Example environment variable for Spring Boot
+    networks:
+      - app-network                  # Connect this service to the shared network
+    command: ["java", "-jar", "app.jar"]  # Override CMD to run the Spring Boot JAR
+
+# =========================
+# Network configuration
+# =========================
+networks:
+  app-network:
+    driver: bridge  # Use bridge network so containers can communicate using service names
