@@ -1,37 +1,47 @@
-version: "3.9"  # Docker Compose file format version
-
 services:
-  # =========================
-  # Frontend Service (React)
-  # =========================
   frontend:
-    build: ./frontend                # Path to the frontend Dockerfile
-    container_name: frontend         # Optional: name the container
+    build: ./frontend
+    container_name: frontend
     ports:
-      - "3000:80"                   # Map host port 3000 to container port 80 (Nginx serves on 80)
+      - "3000:80"
     depends_on:
-      - backend                     # Ensure backend starts before frontend
+      - backend
     networks:
-      - app-network                 # Connect this service to the shared network
-    command: ["nginx", "-g", "daemon off;"]  # Override CMD to run Nginx in foreground
+      - app-network
+    command: ["nginx", "-g", "daemon off;"]
 
-  # =========================
-  # Backend Service (Spring Boot)
-  # =========================
   backend:
-    build: ./backend                 # Path to the backend Dockerfile
-    container_name: backend          # Optional: name the container
+    build: ./backend
+    container_name: backend
     ports:
-      - "5000:8080"                  # Map host port 8080 to container port 8080 (Spring Boot default)
+      - "5000:5000"
     environment:
-      - SPRING_PROFILES_ACTIVE=prod  # Example environment variable for Spring Boot
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mariadb://db:3306/dashboard_demo
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: 123
+    depends_on:
+      - db
     networks:
-      - app-network                  # Connect this service to the shared network
-    command: ["java", "-jar", "app.jar"]  # Override CMD to run the Spring Boot JAR
+      - app-network
+    command: ["java", "-jar", "app.jar"]
 
-# =========================
-# Network configuration
-# =========================
+  db:
+    image: mariadb:latest
+    container_name: mariadb
+    environment:
+      MARIADB_ROOT_PASSWORD: 123
+      MARIADB_DATABASE: dashboard_demo
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -uroot -p$${MARIADB_ROOT_PASSWORD} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 networks:
   app-network:
-    driver: bridge  # Use bridge network so containers can communicate using service names
+    driver: bridge
